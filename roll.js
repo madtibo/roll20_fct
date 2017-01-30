@@ -1,5 +1,5 @@
 function isNormalInteger(str) {
-    return /^[0-9]\d*$/.test(str);
+   return (/^[0-9]\d*$/).test(str);
 }
 
 function getPlayerId(msg) {
@@ -7,7 +7,7 @@ function getPlayerId(msg) {
     try {
         player_id = 
             getObj('player', msg.playerid).get('speakingas').split("|",2)[1];
-        if(player_id == null) {
+        if(player_id === null) {
 			player_id = msg.playerid;
 		}
     }
@@ -21,14 +21,11 @@ function getPlayerId(msg) {
 function getCharacterId(msg) {
     var char_id;
     try {
-        //log("character for "+getPlayerId(msg)+": "
-        //    +JSON.stringify(findObjs({type: 'character',
-        //                              controlledby: getPlayerId(msg)},
-        //             {caseInsensitive: true})));
+        //log("character for "+getPlayerId(msg)+": "+JSON.stringify(findObjs({type: 'character',controlledby: getPlayerId(msg)},{caseInsensitive: true})));
         char_id = findObjs({type: 'character',
                             controlledby: getPlayerId(msg)},
                            {caseInsensitive: true})[0].id;
-        if(char_id == null) {
+        if(char_id === null) {
 			char_id = msg.playerid;
 		}
     }
@@ -58,7 +55,7 @@ function getAttrValueByRegex(character_id,
                  {caseInsensitive: true});
     var index,len,attr_value=0,attribute_name="";
     var patt = new RegExp(attribute_regex, 'i');
-    for (index=0, len=attributes.length; index<len; ++index) {
+    for (index=0, len=attributes.length; index<len; index++) {
         if (patt.test(attributes[index].get("name"))) {
             attr_value = attributes[index].get('current');
             attribute_name = attributes[index].get("name");
@@ -93,10 +90,8 @@ function getAttrValueByName(character_id,
                             attribute_default_value) {
     var attribute_default_value=attribute_default_value || '';
     var attribute=attribute_default_value;
-    //log("get value for player " + character_id + " " + attribute_name  + " (" + attribute_default_value + ")");
-    log("get value for player " + character_id + " " + attribute_name
-        + " (" + attribute_default_value + ")");
-    try {     
+    //log("get value for player " + character_id + " " + attribute_name + " (" + attribute_default_value + ")");
+    try {
         attributes=
             findObjs({type: 'attribute',
                       characterid: character_id,
@@ -111,17 +106,21 @@ function getAttrValueByName(character_id,
         }
     }
     catch (e) {
-        // log("attribute not found");
+        log("attribute not found");
     }
-    log("set default value for player " + character_id + " " + attribute_name
-        + " (" + attribute_default_value + ")");
-    createObj(
-        'attribute', 
-        { characterid: character_id,
-          name: attribute_name,
-          current: attribute_default_value 
-        }
-    );
+    //log("set default value for player " + character_id + " " + attribute_name + " (" + attribute_default_value + ")");
+    try {
+        createObj(
+            'attribute', 
+            { characterid: character_id,
+              name: attribute_name,
+              current: attribute_default_value 
+            }
+        );
+    }
+    catch (e) {
+        log("impossible to set attribute: "+attribute_name+" to char_id "+character_id);
+    }
     return attribute_default_value;
 }
 
@@ -129,13 +128,14 @@ function sendRollMsg(who, speak, text, nb_dice, difficulty) {
     var message = speak + " " + text 
       	+ " [[{" + nb_dice[1] + "d10!}>" + difficulty + "f1]]"
       	+ "  ("+nb_dice[0]+" diff "+difficulty+")";
-    log("envoi au chat : " + message);
+    log("envoi au chat " + who + ": " + message);
     sendChat(who, message);
 }
 
 on("chat:message", function(msg) {
     // is it a special message?
     if(msg.type == "api") {
+        //log("msg: "+JSON.stringify(msg));
         var is_roll=false;
         var speak;
         log("rcv from "+msg.playerid+": "+msg.content);
@@ -153,18 +153,23 @@ on("chat:message", function(msg) {
         }
         if (msg.content.match(/^!gr/) !== null) {
             log("trouvé gr");
-            speak="/w conteur";
+            speak="/w gm";
             is_roll=true;
         }
         if (is_roll){
             var difficulty=getAttrValueByName(char_id,"dflt_difficulty","6");
-            var nb_dice=getAttrValueByName(char_id,"dflt_nb_dice","4");
+            log("difficulty: "+difficulty);
+            var nb_dice=getAttrSum(char_id,getAttrValueByName(char_id,"dflt_nb_dice","4"));
+            log("nb_dice: "+nb_dice);
             var text=getAttrValueByName(char_id,"dflt_text","mon action");
+            log("text: "+text);
             var param = msg.content.split(" ", 10);
             var is_sane = true;
             if(param[1]!==undefined) {
+                log("param 1");
                 difficulty = getAttrSum(char_id,param[1])[1];
                 if (difficulty === 0) { is_sane = false; }
+                log("param 2");
                 if(param[2]!==undefined) {
             		nb_dice = getAttrSum(char_id,param[2]);
                     if (nb_dice[1] === 0) { is_sane = false; }

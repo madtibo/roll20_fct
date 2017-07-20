@@ -109,7 +109,7 @@ function getAttrValueByRegex(character_id,
 function getAttrSum(character_id, attributes) {
 		'use strict';
     var params = attributes.split("+", 3);
-    var attr_sum=0;
+    var attr_sum=Number(getAttrValueByRegex(character_id,"Health")[1]);
     var attr_string=[];
 		for(var i=0; i<3; i++) {
         if(isNormalInteger(params[i])) {

@@ -103,10 +103,15 @@ function getHealthLevel(character_id) {
 function getAttrSum(character_id, attributes) {
 		'use strict';
     var params = attributes.split("+", 3);
-    var attr_sum=getHealthLevel(character_id);
+    var health_malus=getAttrValueByRegex(character_id,'Health')[1];
+    // in case of Incapacity, return now
+    if (health_malus === 'Incap') {
+	return [ 'Incapacitated',0 ]
+    }
+    var attr_sum=0;
     log('attr_sum = '+attr_sum);
     var attr_string=[];
-		for(var i=0; i<3; i++) {
+    for(var i=0; i<3; i++) {
         if(isNormalInteger(params[i])) {
             attr_string.push(params[i]);
             attr_sum += Number(params[i]);
@@ -117,8 +122,12 @@ function getAttrSum(character_id, attributes) {
             attr_sum += Number(attr_name_value[1]);
         }
     }
-    if (attr_sum<0) {
+    // Health does not affect Avatar, Stamina, or Arete rolls
+    if( ! /Avatar|Stamina|Arete/.test(attr_string)) {
+	attr_sum += Number(health_malus);
+	if (attr_sum<0) {
 	    attr_sum=0;
+	}
     }
     return [ attr_string.join('+'), attr_sum ];
 }
@@ -415,7 +424,6 @@ on("chat:message", function(msg) {
         
         if (msg.content.match(/^!at/) !== null) {
             log("command: get attribute value");
-            log('health: '+getHealthLevel(getCharacterId(msg)));
             var param = msg.content.split(" ", 8);
             var attr = getAttrSum(getCharacterId(msg),param[1]);
             sendChat(msg.who, "/w "+msg.who+" "+attr[0]+": "+attr[1]);
